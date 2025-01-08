@@ -6,6 +6,7 @@ import {
   InvoicesTable,
   LatestInvoiceRaw,
   Revenue,
+  User
 } from './definitions';
 import { formatCurrency } from './utils';
 
@@ -14,12 +15,12 @@ export async function fetchRevenue() {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
@@ -30,6 +31,9 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     const data = await sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
       FROM invoices
@@ -215,3 +219,37 @@ export async function fetchFilteredCustomers(query: string) {
     throw new Error('Failed to fetch customer table.');
   }
 }
+
+export async function addInvoice(customerId:string, amountInCents:number, status:string) {
+  const date = new Date().toISOString().split('T')[0];
+  const res = await sql`
+    INSERT INTO invoices (customer_id, amount, status, date)
+    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+  `;
+  return res;
+}
+
+export async function updateInvoice(id:string, customerId:string, amountInCents:number, status:string) {
+  const res = await sql`
+    UPDATE invoices set customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+    WHERE id = ${id}
+  `;
+  return res;
+}
+
+export async function deleteInvoiceById(id:string) {
+  const res = await sql`
+    DELETE from invoices WHERE id = ${id}
+  `;
+  return res;
+}
+
+export async function getUser(email: string): Promise<User | undefined> {
+    try {
+      const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
+      return user.rows[0];
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      throw new Error('Failed to fetch user.');
+    }
+  }
